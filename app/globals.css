@@ -1,0 +1,409 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* AI产品经理工具 - 全局样式 */
+/* 科技感、简约、大气的设计风格 */
+
+:root {
+  /* 科技感配色方案 */
+  --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --accent-gradient: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  --dark-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  
+  /* 玻璃态效果 */
+  --glass-bg: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+  
+  /* 动画时间 */
+  --transition-fast: 0.2s;
+  --transition-normal: 0.3s;
+  --transition-slow: 0.5s;
+}
+
+/* 基础样式重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--dark-gradient);
+  color: white;
+  min-height: 100vh;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-gradient);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(103, 126, 234, 0.8);
+}
+
+/* 通用工具类 */
+@layer utilities {
+  .glass-effect {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .gradient-text {
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hover-lift {
+    transition: transform var(--transition-normal) ease;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-4px);
+  }
+
+  .glow-effect {
+    box-shadow: 0 0 20px rgba(103, 126, 234, 0.3);
+    transition: box-shadow var(--transition-normal) ease;
+  }
+
+  .glow-effect:hover {
+    box-shadow: 0 0 30px rgba(103, 126, 234, 0.5);
+  }
+
+  .shimmer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+}
+
+/* 组件样式 */
+@layer components {
+  /* 按钮组件 */
+  .btn-primary {
+    @apply px-6 py-3 rounded-lg font-medium text-white;
+    background: var(--primary-gradient);
+    border: none;
+    cursor: pointer;
+    transition: all var(--transition-normal) ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(103, 126, 234, 0.4);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-secondary {
+    @apply px-6 py-3 rounded-lg font-medium text-white border border-white/20;
+    background: transparent;
+    cursor: pointer;
+    transition: all var(--transition-normal) ease;
+  }
+
+  .btn-secondary:hover {
+    @apply border-white/40;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  /* 输入框组件 */
+  .input-field {
+    @apply w-full px-4 py-3 rounded-lg border border-white/20 bg-white/10;
+    color: white;
+    backdrop-filter: blur(8px);
+    transition: all var(--transition-normal) ease;
+  }
+
+  .input-field:focus {
+    @apply outline-none border-blue-400;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  .input-field::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  /* 卡片组件 */
+  .card {
+    @apply rounded-xl p-6;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    backdrop-filter: blur(16px);
+    transition: all var(--transition-normal) ease;
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(31, 38, 135, 0.5);
+  }
+
+  /* 进度指示器 */
+  .progress-indicator {
+    @apply flex items-center justify-between mb-8;
+  }
+
+  .progress-step {
+    @apply flex items-center space-x-2 text-sm font-medium;
+    color: rgba(255, 255, 255, 0.6);
+    transition: color var(--transition-normal) ease;
+  }
+
+  .progress-step.active {
+    color: #667eea;
+  }
+
+  .progress-step.completed {
+    color: #4CAF50;
+  }
+
+  /* 问题卡片 */
+  .question-card {
+    @apply card mb-6;
+  }
+
+  .question-title {
+    @apply text-xl font-semibold mb-4 gradient-text;
+  }
+
+  .question-options {
+    @apply space-y-3;
+  }
+
+  .option-button {
+    @apply w-full p-4 rounded-lg border border-white/20 text-left;
+    background: transparent;
+    color: white;
+    cursor: pointer;
+    transition: all var(--transition-normal) ease;
+  }
+
+  .option-button:hover {
+    @apply border-blue-400;
+    background: rgba(59, 130, 246, 0.1);
+  }
+
+  .option-button.selected {
+    @apply border-blue-400;
+    background: rgba(59, 130, 246, 0.2);
+  }
+
+  /* 功能卡片 */
+  .feature-card {
+    @apply card relative;
+  }
+
+  .feature-name {
+    @apply text-lg font-semibold mb-2;
+  }
+
+  .feature-description {
+    @apply text-white/70 mb-4;
+  }
+
+  .feature-badge {
+    @apply px-2 py-1 rounded-full text-xs font-medium;
+  }
+
+  .feature-badge.essential {
+    @apply bg-green-500/20 text-green-400 border border-green-500/30;
+  }
+
+  .feature-badge.optional {
+    @apply bg-blue-500/20 text-blue-400 border border-blue-500/30;
+  }
+
+  /* 消息气泡 */
+  .message-bubble {
+    @apply rounded-2xl p-4 mb-4 max-w-md;
+    animation: slideUp var(--transition-slow) ease;
+  }
+
+  .message-bubble.user {
+    @apply ml-auto;
+    background: var(--primary-gradient);
+  }
+
+  .message-bubble.assistant {
+    @apply mr-auto;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+  }
+
+  /* 流式输出效果 */
+  .streaming-text {
+    position: relative;
+  }
+
+  .streaming-text::after {
+    content: '|';
+    animation: blink 1s infinite;
+    margin-left: 2px;
+    color: #667eea;
+  }
+
+  @keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+
+  /* PRD展示样式 */
+  .prd-content {
+    @apply prose prose-invert max-w-none;
+  }
+
+  .prd-content h1 {
+    @apply gradient-text text-3xl font-bold mb-6;
+  }
+
+  .prd-content h2 {
+    @apply text-xl font-semibold mb-4 text-blue-300;
+  }
+
+  .prd-content h3 {
+    @apply text-lg font-medium mb-3 text-blue-200;
+  }
+
+  .prd-content table {
+    @apply w-full border-collapse mb-6;
+  }
+
+  .prd-content th,
+  .prd-content td {
+    @apply border border-white/20 p-3 text-left;
+  }
+
+  .prd-content th {
+    @apply bg-white/10 font-semibold;
+  }
+
+  /* 代码块样式 */
+  .prd-content pre {
+    @apply bg-black/30 border border-white/20 rounded-lg p-4 overflow-x-auto;
+  }
+
+  .prd-content code {
+    @apply text-green-400 font-mono text-sm;
+  }
+
+  /* 加载动画 */
+  .loading-spinner {
+    @apply w-6 h-6 border-2 border-white/20 border-t-white rounded-full;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .loading-dots::after {
+    content: '';
+    animation: dots 1.5s infinite;
+  }
+
+  @keyframes dots {
+    0%, 20% { content: '.'; }
+    40% { content: '..'; }
+    60% { content: '...'; }
+    80%, 100% { content: ''; }
+  }
+
+  /* 响应式设计 */
+  @media (max-width: 768px) {
+    .card {
+      @apply p-4;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+      @apply text-sm px-4 py-2;
+    }
+
+    .question-title {
+      @apply text-lg;
+    }
+
+    .message-bubble {
+      @apply max-w-xs;
+    }
+  }
+
+  /* 深色模式优化 */
+  @media (prefers-color-scheme: dark) {
+    .glass-effect {
+      background: rgba(15, 23, 42, 0.8);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  /* 高对比度模式 */
+  @media (prefers-contrast: high) {
+    .card {
+      border-width: 2px;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+      border-width: 2px;
+    }
+  }
+
+  /* 减少动画偏好 */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

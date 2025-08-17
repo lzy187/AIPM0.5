@@ -1,0 +1,45 @@
+{
+  "name": "ai-product-manager",
+  "version": "1.0.0",
+  "description": "AI驱动的产品经理工具 - 从想法到实现的完整解决方案",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "@tailwindcss/typography": "^0.5.16",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "autoprefixer": "^10.4.16",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "file-saver": "^2.0.5",
+    "framer-motion": "^10.16.5",
+    "jszip": "^3.10.1",
+    "lucide-react": "^0.294.0",
+    "marked": "^9.1.6",
+    "next": "14.0.0",
+    "openai": "^4.0.0",
+    "postcss": "^8.4.31",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-markdown": "^9.0.1",
+    "tailwind-merge": "^2.0.0",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/file-saver": "^2.0.7",
+    "eslint": "^8.0.0",
+    "eslint-config-next": "14.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
