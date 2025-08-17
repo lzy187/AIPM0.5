@@ -22,7 +22,7 @@ export class MeituanAIClient {
 
   constructor() {
     this.client = new OpenAI({
-      apiKey: process.env.MEITUAN_APP_ID!,
+      apiKey: process.env.MEITUAN_APP_ID || '1953282708797452324',
       baseURL: process.env.MEITUAN_API_BASE_URL || "https://aigc.sankuai.com/v1/openai/native"
     });
 
@@ -41,13 +41,12 @@ export class MeituanAIClient {
       const response = await this.client.chat.completions.create({
         model: "anthropic.claude-opus-4.1",
         messages,
-        stream: false, // 明确指定为false
+        stream: options?.stream || false,
         temperature: options?.temperature || 0.7,
         max_tokens: options?.maxTokens || 4000,
-      }, {
-        headers: {
+        extra_headers: {
           "M-TraceId": traceId
-        }
+        } as any
       });
 
       return {
@@ -80,10 +79,9 @@ export class MeituanAIClient {
         stream: true,
         temperature: options?.temperature || 0.7,
         max_tokens: options?.maxTokens || 4000,
-      }, {
-        headers: {
+        extra_headers: {
           "M-TraceId": traceId
-        }
+        } as any
       });
 
       for await (const chunk of stream) {
