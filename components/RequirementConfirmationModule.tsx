@@ -13,7 +13,8 @@ import {
   Target,
   Users,
   Layers,
-  Star
+  Star,
+  X
 } from 'lucide-react';
 import type { 
   SmartQuestioningResult, 
