@@ -159,11 +159,7 @@ export interface RequirementConfirmationResult {
   factsDigest?: FactsDigest;
   confirmedSummary?: RequirementSummary;
   adjustedSummary?: RequirementSummary;
-  validation?: {
-    confirmed: boolean;
-    confidence: number;
-    timestamp: Date;
-  };
+  validation?: ValidationResult;
   error?: string;
   message?: string;
 }

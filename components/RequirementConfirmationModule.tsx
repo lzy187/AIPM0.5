@@ -151,9 +151,9 @@ export function RequirementConfirmationModule({
         },
         confirmedSummary: summary,
         validation: {
-          confirmed: true,
-          confidence: 0.95,
-          timestamp: new Date()
+          isValid: true,
+          score: 0.95,
+          issues: []
         }
       };
 

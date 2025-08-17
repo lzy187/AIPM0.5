@@ -480,9 +480,9 @@ export class RequirementConfirmationController {
       factsDigest,
       confirmedSummary: confirmationState.summary,
       validation: {
-        confirmed: true,
-        confidence: 0.95,
-        timestamp: new Date()
+        isValid: true,
+        score: 0.95,
+        issues: []
       }
     };
   }
@@ -500,10 +500,12 @@ export class RequirementConfirmationController {
         adjustments
       );
 
+      const validation: ValidationResult = this.summaryGenerator.validateSummaryQuality(adjustedSummary);
+      
       return {
         action: 'show_adjusted_summary',
         adjustedSummary,
-        validation: this.summaryGenerator.validateSummaryQuality(adjustedSummary)
+        validation
       };
     } catch (error: any) {
       return {

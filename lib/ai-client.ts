@@ -38,15 +38,22 @@ export class MeituanAIClient {
     const traceId = this.traceIdGenerator();
 
     try {
-      const response = await this.client.chat.completions.create({
+      const requestParams: any = {
         model: "anthropic.claude-opus-4.1",
         messages,
-        stream: options?.stream || false,
         temperature: options?.temperature || 0.7,
         max_tokens: options?.maxTokens || 4000,
-        extra_headers: {
+      };
+
+      // 根据是否流式调用来处理
+      if (options?.stream) {
+        requestParams.stream = true;
+      }
+
+      const response = await this.client.chat.completions.create(requestParams, {
+        headers: {
           "M-TraceId": traceId
-        } as any
+        }
       });
 
       return {
@@ -79,9 +86,10 @@ export class MeituanAIClient {
         stream: true,
         temperature: options?.temperature || 0.7,
         max_tokens: options?.maxTokens || 4000,
-        extra_headers: {
+      }, {
+        headers: {
           "M-TraceId": traceId
-        } as any
+        }
       });
 
       for await (const chunk of stream) {
