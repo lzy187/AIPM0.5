@@ -41,12 +41,13 @@ export class MeituanAIClient {
       const response = await this.client.chat.completions.create({
         model: "anthropic.claude-opus-4.1",
         messages,
-        stream: options?.stream || false,
+        stream: false, // 明确指定为false
         temperature: options?.temperature || 0.7,
         max_tokens: options?.maxTokens || 4000,
-        extra_headers: {
+      }, {
+        headers: {
           "M-TraceId": traceId
-        } as any
+        }
       });
 
       return {
@@ -79,9 +80,10 @@ export class MeituanAIClient {
         stream: true,
         temperature: options?.temperature || 0.7,
         max_tokens: options?.maxTokens || 4000,
-        extra_headers: {
+      }, {
+        headers: {
           "M-TraceId": traceId
-        } as any
+        }
       });
 
       for await (const chunk of stream) {
