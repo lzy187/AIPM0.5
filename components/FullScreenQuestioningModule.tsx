@@ -55,10 +55,22 @@ const generateRandomPosition = () => {
 export default function FullScreenQuestioningModule({ userInput, onComplete }: Props) {
   const [activeBubbles, setActiveBubbles] = useState<BubbleQuestion[]>([]);
   const [questionHistory, setQuestionHistory] = useState<string[]>([]);
-  const [completeness, setCompleteness] = useState({
-    key: 0.87,      // 产品类型
-    important: 0.75, // 核心目标  
-    overall: 0.62    // 整体完整度
+  
+  // 🎯 修复：基于预分析结果初始化完整度
+  const [completeness, setCompleteness] = useState(() => {
+    if (userInput?.preanalysis) {
+      return {
+        key: userInput.preanalysis.analysis.productType.confidence,
+        important: userInput.preanalysis.analysis.coreGoal.confidence,
+        overall: userInput.preanalysis.completeness
+      };
+    }
+    // 降级：没有预分析结果时使用默认值
+    return {
+      key: 0.3,      // 产品类型 - 较低初始值
+      important: 0.2, // 核心目标 - 较低初始值
+      overall: 0.25   // 整体完整度 - 较低初始值
+    };
   });
   const [isLoading, setIsLoading] = useState(false); // 修改：先不加载状态，避免空白
   const [isComplete, setIsComplete] = useState(false);
@@ -91,12 +103,8 @@ export default function FullScreenQuestioningModule({ userInput, onComplete }: P
           isAnswered: false
         };
 
-        // 🎯 初始化完整度基于预分析
-        setCompleteness({
-          key: preanalysis.analysis.productType.confidence,
-          important: preanalysis.analysis.coreGoal.confidence,
-          overall: preanalysis.completeness
-        });
+        // 🎯 注释：完整度已在useState初始化时设置，无需重复设置
+        // setCompleteness已在组件初始化时基于预分析结果正确设置
 
         setTimeout(() => {
           setActiveBubbles([bubbleQuestion]);

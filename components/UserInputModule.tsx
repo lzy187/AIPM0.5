@@ -146,10 +146,23 @@ export function UserInputModule({ onComplete, sessionId }: UserInputModuleProps)
         },
         multimodalAnalysis: {
           textSummary: textInput.slice(0, 100) + (textInput.length > 100 ? '...' : ''),
-          imageDescriptions: images.map((_, index) => `图片${index + 1}的内容分析`),
+          imageDescriptions: images.map((image, index) => {
+            // 🎯 基于图片类型和文件名推断内容
+            const fileName = image.name.toLowerCase();
+            if (fileName.includes('ui') || fileName.includes('interface') || fileName.includes('页面')) {
+              return `图片${index + 1}: UI界面设计草图`;
+            } else if (fileName.includes('flow') || fileName.includes('流程')) {
+              return `图片${index + 1}: 流程图或业务流程`;
+            } else if (fileName.includes('wireframe') || fileName.includes('原型')) {
+              return `图片${index + 1}: 线框图或原型设计`;
+            }
+            return `图片${index + 1}: 产品相关参考图片`;
+          }),
           extractedText: [],
-          combinedContext: textInput.trim(),
-          confidence: 0.85 + Math.random() * 0.1
+          combinedContext: images.length > 0 
+            ? `${textInput.trim()}\n\n[包含${images.length}张参考图片，有助于理解产品需求]`
+            : textInput.trim(),
+          confidence: Math.min(0.85 + (images.length * 0.05), 0.95) // 图片增加置信度
         },
         validation: {
           isValid: true,
