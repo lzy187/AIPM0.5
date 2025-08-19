@@ -86,8 +86,7 @@ ${getProductTypeGuidance(template)}
     ], 3, {
       modelId: MODEL_CONFIG.PRD_GENERATION, // 使用 Claude Opus 4.1
       temperature: 0.3,
-      maxTokens: 8000,
-      traceId: `unified-prd-${sessionId}-${Date.now()}`
+      maxTokens: 8000
     });
 
     const aiResponse = result.response.choices[0].message.content;

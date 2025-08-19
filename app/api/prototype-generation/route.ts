@@ -61,8 +61,7 @@ export async function POST(request: NextRequest) {
     ], 3, {
       modelId: MODEL_CONFIG.PRD_GENERATION, // 使用相同的高级模型
       temperature: 0.3,
-      maxTokens: 8000,
-      traceId: `prototype-${sessionId}-${Date.now()}`
+      maxTokens: 8000
     });
 
     const aiResponse = result.response.choices[0].message.content;
