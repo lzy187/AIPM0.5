@@ -21,6 +21,46 @@ export interface UserInputResult {
     wordCount: number;
     issues: string[];
   };
+  // ✨ 添加预分析结果
+  preanalysis?: {
+    analysis: {
+      productType: {
+        identified: boolean;
+        content: string;
+        confidence: number;
+      };
+      coreGoal: {
+        identified: boolean;
+        content: string;
+        confidence: number;
+      };
+      mainFeatures: {
+        identified: boolean;
+        content: string;
+        confidence: number;
+      };
+      targetUsers: {
+        identified: boolean;
+        content: string;
+        confidence: number;
+      };
+      technicalDetails: {
+        identified: boolean;
+        content: string;
+        confidence: number;
+      };
+    };
+    missingDimensions: string[];
+    completeness: number;
+    nextQuestion: {
+      dimension: string;
+      question: string;
+      options: Array<{
+        id: string;
+        text: string;
+      }>;
+    };
+  };
 }
 
 // ============ 02模块：智能问答 ============
@@ -205,11 +245,14 @@ export interface TechnicalSpecs {
 }
 
 export interface PrototypePage {
+  id: string;
   name: string;
   description: string;
   htmlCode: string;
   features: string[];
   downloadUrl: string;
+  thumbnailUrl?: string;
+  designStyle?: string;
 }
 
 export interface HighQualityPRD {
@@ -248,19 +291,26 @@ export interface HighQualityPRD {
     wireframes?: any[];
     systemDiagram?: string;
   };
+  markdown?: string; // 添加 markdown 支持
 }
 
 export interface PRDQualityReport {
+  completeness: number;
+  clarity: number;
+  specificity: number;
+  feasibility: number;
+  visualQuality?: number;
   overallScore: number;
-  passedQualityGate: boolean;
-  checks: Array<{
+  passedQualityGate?: boolean;
+  checks?: Array<{
     name: string;
     score: number;
     passed: boolean;
     issues: string[];
   }>;
-  issues: any[];
+  issues?: any[];
   recommendations: string[];
+  strengths: string[];
 }
 
 // ============ 05模块：AI编程解决方案 ============
@@ -347,7 +397,20 @@ export interface AppState {
     qualityReport: PRDQualityReport;
   };
   codingResult?: AICodingSolution;
+  prototypeResult?: any;
 }
+
+// ============ 产品类型和原型相关 ============
+export type ProductType = 
+  | 'web_app'
+  | 'mobile_app' 
+  | 'browser_extension'
+  | 'desktop_app'
+  | 'saas_platform'
+  | 'e_commerce'
+  | 'management_tool'
+  | 'utility_tool'
+  | 'content_platform';
 
 // ============ UI组件Props类型 ============
 export interface ComponentProps {

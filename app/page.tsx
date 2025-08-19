@@ -9,16 +9,17 @@ import {
   FileText, 
   Code2,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  Image as ImageIcon
 } from 'lucide-react';
 
 // 组件导入（稍后创建）
 import { UserInputModule } from '@/components/UserInputModule';
-import { SmartQuestioningModule } from '@/components/SmartQuestioningModule';
+import FullScreenQuestioningModule from '@/components/FullScreenQuestioningModule';
 import { RequirementConfirmationModule } from '@/components/RequirementConfirmationModule';
-import { PRDGenerationModule } from '@/components/PRDGenerationModule';
+import { UnifiedPRDModule } from '@/components/UnifiedPRDModule';
 import { AICodingModule } from '@/components/AICodingModule';
-import { ProgressIndicator } from '@/components/ProgressIndicator';
+// import { ProgressIndicator } from '@/components/ProgressIndicator'; // 已移除进度条
 
 import type { ModuleStep, AppState } from '@/types';
 
@@ -98,13 +99,15 @@ export default function AIProductManager() {
     handleModuleTransition('questioning', { userInput: userInputResult });
   };
 
-  // 处理智能问答完成
+  // 处理智能问答完成 - 🎯 修正：应该跳转到需求确认
   const handleQuestioningComplete = (questioningResult: any) => {
+    console.log('✅ 智能问答完成，传递questioningResult:', questioningResult);
     handleModuleTransition('confirmation', { questioningResult });
   };
 
-  // 处理需求确认完成
+  // 处理需求确认完成 - 🎯 传递confirmationResult给PRD模块
   const handleConfirmationComplete = (confirmationResult: any) => {
+    console.log('✅ 需求确认完成，传递confirmationResult:', confirmationResult);
     handleModuleTransition('prd', { confirmationResult });
   };
 
@@ -140,24 +143,7 @@ export default function AIProductManager() {
         </motion.div>
 
         {/* 进度指示器 */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="mb-8"
-        >
-          <ProgressIndicator 
-            modules={modules.map(m => m.id)}
-            current={appState.currentModule}
-            moduleInfo={modules}
-            onModuleClick={(module) => {
-              // 只允许点击已完成的或当前的模块
-              const targetIndex = modules.findIndex(m => m.id === module);
-              if (targetIndex <= currentModuleIndex) {
-                setAppState(prev => ({ ...prev, currentModule: module }));
-              }
-            }}
-          />
-        </motion.div>
+        {/* 已移除进度条组件 - 用户要求删除 */}
 
         {/* 当前模块标题 */}
         <motion.div
@@ -207,15 +193,14 @@ export default function AIProductManager() {
               />
             )}
 
-            {appState.currentModule === 'questioning' && (
-              <SmartQuestioningModule
+            {appState.currentModule === 'questioning' && appState.userInput && (
+              <FullScreenQuestioningModule
                 userInput={appState.userInput}
                 onComplete={handleQuestioningComplete}
-                onRestart={handleRestart}
-                sessionId={appState.sessionId}
               />
             )}
 
+            {/* ✅ 需求确认模块 */}
             {appState.currentModule === 'confirmation' && (
               <RequirementConfirmationModule
                 questioningResult={appState.questioningResult}
@@ -225,8 +210,9 @@ export default function AIProductManager() {
               />
             )}
 
+            {/* ✅ PRD生成模块 - 整体单页展示 */}
             {appState.currentModule === 'prd' && (
-              <PRDGenerationModule
+              <UnifiedPRDModule
                 confirmationResult={appState.confirmationResult}
                 onComplete={handlePRDComplete}
                 onRestart={handleRestart}
@@ -234,6 +220,9 @@ export default function AIProductManager() {
               />
             )}
 
+
+
+            {/* ✅ AI编程解决方案模块 */}
             {appState.currentModule === 'coding' && (
               <AICodingModule
                 prdResult={appState.prdResult}

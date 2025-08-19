@@ -100,7 +100,7 @@ export function UserInputModule({ onComplete, sessionId }: UserInputModuleProps)
     setError(null);
   };
 
-  // 提交处理
+  // 提交处理 - 🎯 加入AI预分析步骤
   const handleSubmit = async () => {
     if (!textInput.trim() && images.length === 0) {
       setError('请描述您的产品想法或上传相关图片');
@@ -116,9 +116,28 @@ export function UserInputModule({ onComplete, sessionId }: UserInputModuleProps)
     setError(null);
 
     try {
-      // 模拟多模态分析
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // 🧠 AI预分析需求缺失维度
+      console.log('🧠 开始AI预分析需求...');
+      const preanalysisResponse = await fetch('/api/preanalysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userInput: textInput.trim(),
+          sessionId
+        })
+      });
 
+      const preanalysisResult = await preanalysisResponse.json();
+
+      if (!preanalysisResult.success) {
+        throw new Error(preanalysisResult.error || '预分析失败');
+      }
+
+      console.log('✅ 预分析完成:', preanalysisResult.data);
+
+      // 🎯 传递预分析结果给下一个模块
       const result: UserInputResult = {
         originalInput: {
           text: textInput.trim(),
@@ -137,12 +156,15 @@ export function UserInputModule({ onComplete, sessionId }: UserInputModuleProps)
           hasContent: true,
           wordCount: textInput.length,
           issues: []
-        }
+        },
+        // ✨ 添加预分析结果
+        preanalysis: preanalysisResult.data.preanalysis
       };
 
       onComplete(result);
     } catch (error) {
-      setError('分析过程中出现错误，请重试');
+      console.error('❌ 预分析错误:', error);
+      setError(error instanceof Error ? error.message : '分析过程中出现错误，请重试');
       setIsAnalyzing(false);
     }
   };

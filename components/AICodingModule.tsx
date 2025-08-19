@@ -48,29 +48,91 @@ export function AICodingModule({
     setIsGenerating(true);
 
     try {
-      const steps = [
-        { name: '分析PRD文档', duration: 1500 },
-        { name: '设计项目架构', duration: 2000 },
-        { name: '生成开发计划', duration: 2500 },
-        { name: '创建AI编程指令', duration: 3000 },
-        { name: '准备代码模板', duration: 2000 },
-        { name: '配置部署方案', duration: 1500 }
-      ];
+      setGenerationStep('正在连接AI编程顾问...');
 
-      for (const step of steps) {
-        setGenerationStep(step.name);
-        await new Promise(resolve => setTimeout(resolve, step.duration));
+      // 调用真实的AI API生成编程方案
+      const response = await fetch('/api/ai-coding-solution', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prdDocument: typeof prdResult.content === 'string' ? prdResult.content : JSON.stringify(prdResult.prd),
+          sessionId: sessionId,
+          stream: true
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('AI编程方案API调用失败');
       }
 
-      // 生成完整解决方案
+      // 处理流式响应
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = '';
+
+      if (reader) {
+        setGenerationStep('正在流式生成编程方案...');
+        
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) break;
+          
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                
+                if (data.type === 'step') {
+                  setGenerationStep(data.step);
+                } else if (data.type === 'content') {
+                  fullContent += data.content;
+                  // 这里可以添加实时内容更新显示
+                } else if (data.type === 'complete') {
+                  // 生成完成，创建解决方案对象
+                  const generatedSolution = await createAICodingSolution(prdResult, fullContent);
+                  setSolution(generatedSolution);
+                  
+                  setIsGenerating(false);
+                  setGenerationStep('生成完成');
+                  break;
+                }
+              } catch (e) {
+                // 忽略解析错误的行
+              }
+            }
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error('AI编程方案生成失败:', error);
+      
+      // 降级处理 - 使用本地生成
+      await generateCodingSolutionFallback();
+    }
+  };
+
+  // 降级方案
+  const generateCodingSolutionFallback = async () => {
+    try {
+      setGenerationStep('使用备用方案生成编程解决方案...');
+
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
       const generatedSolution = await createAICodingSolution(prdResult);
       setSolution(generatedSolution);
       
       setIsGenerating(false);
       setGenerationStep('生成完成');
-
+      
     } catch (error) {
-      console.error('AI编程方案生成失败:', error);
+      console.error('降级方案也失败:', error);
       setIsGenerating(false);
       setGenerationStep('生成失败');
     }
@@ -503,8 +565,8 @@ export function AICodingModule({
 }
 
 // 辅助函数
-async function createAICodingSolution(prdResult: any): Promise<AICodingSolution> {
-  const prd = prdResult.prd;
+async function createAICodingSolution(prdResult: any, aiContent?: string): Promise<AICodingSolution> {
+  const prd = prdResult.prd || prdResult;
 
   return {
     projectInitialization: {

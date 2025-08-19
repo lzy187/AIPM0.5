@@ -8,6 +8,7 @@ import type {
   SmartQuestioningResult,
   AICodingSolution 
 } from '@/types';
+import { MODEL_CONFIG } from './model-config';
 
 export interface AICallResult {
   response: any;
@@ -34,15 +35,16 @@ export class MeituanAIClient {
     stream?: boolean;
     temperature?: number;
     maxTokens?: number;
+    modelId?: string;
   }): Promise<AICallResult> {
     const traceId = this.traceIdGenerator();
 
     try {
       const requestParams: any = {
-        model: "anthropic.claude-opus-4.1",
+        model: options?.modelId || MODEL_CONFIG.DEFAULT,
         messages,
-        temperature: options?.temperature || 0.7,
-        max_tokens: options?.maxTokens || 4000,
+        temperature: options?.temperature || 0.5,
+        max_tokens: options?.maxTokens || 2000,
       };
 
       // 根据是否流式调用来处理
@@ -76,16 +78,17 @@ export class MeituanAIClient {
   async *streamCompletion(messages: any[], options?: {
     temperature?: number;
     maxTokens?: number;
+    modelId?: string;
   }) {
     const traceId = this.traceIdGenerator();
 
     try {
       const stream = await this.client.chat.completions.create({
-        model: "anthropic.claude-opus-4.1",
+        model: options?.modelId || MODEL_CONFIG.DEFAULT,
         messages,
         stream: true,
-        temperature: options?.temperature || 0.7,
-        max_tokens: options?.maxTokens || 4000,
+        temperature: options?.temperature || 0.5,
+        max_tokens: options?.maxTokens || 2000,
       }, {
         headers: {
           "M-TraceId": traceId
@@ -120,25 +123,41 @@ export class MeituanAIClient {
   }
 
   // 🎯 重试机制（处理API限流等问题）
-  async chatCompletionWithRetry(messages: any[], maxRetries: number = 3, options?: any): Promise<AICallResult> {
+  async chatCompletionWithRetry(messages: any[], maxRetries: number = 2, options?: {
+    temperature?: number;
+    maxTokens?: number;
+    modelId?: string;
+  }): Promise<AICallResult> {
     let lastError;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
+        // 添加基础请求间隔，避免频繁调用
+        if (attempt > 1) {
+          const baseDelay = 2000; // 基础延迟2秒
+          const exponentialDelay = Math.pow(2, attempt - 1) * 1000;
+          const jitter = Math.random() * 1000; // 添加随机抖动
+          const totalDelay = baseDelay + exponentialDelay + jitter;
+          
+          console.log(`API重试第${attempt}次，等待${Math.round(totalDelay/1000)}秒...`);
+          await new Promise(resolve => setTimeout(resolve, totalDelay));
+        }
+
         const result = await this.chatCompletion(messages, options);
         if (result.success) {
           return result;
         }
         lastError = result.error;
 
-        // 指数退避
-        if (attempt < maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
-        }
-      } catch (error) {
+      } catch (error: any) {
         lastError = error;
-        if (attempt < maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+        console.log(`API调用失败 [第${attempt}次尝试]:`, error.message);
+        
+        // 特别处理429限流错误，使用固定延迟
+        if (error.status === 429) {
+          const rateLimitDelay = 10000; // 固定10秒延迟，避免指数增长
+          console.log(`遇到限流，等待${Math.round(rateLimitDelay/1000)}秒后重试...`);
+          await new Promise(resolve => setTimeout(resolve, rateLimitDelay));
         }
       }
     }
@@ -188,24 +207,26 @@ ${conversationHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
 
 请分析需求收集状态，生成后续问题或需求总结。
 
-请按以下JSON格式回复：
-{
-  "extractedInfo": {
-    "productType": "识别的产品类型",
-    "coreGoal": "核心目标",
-    "targetUsers": "目标用户",
-    "coreFeatures": ["核心功能1", "核心功能2"],
-    "completeness": {
-      "critical": 0.8,
-      "important": 0.6,
-      "overall": 0.7
-    }
-  },
-  "shouldContinue": true/false,
-  "nextQuestion": "下一个问题（如果需要继续）",
-  "questionOptions": ["选项1", "选项2", "选项3"],
-  "reasoning": "决策理由"
-}`;
+请用友好自然的语言回复，避免技术术语和商业分析。
+
+如果需要继续收集信息，请：
+1. 用友好的语言说明您的理解
+2. 提出一个明确的问题
+3. 在回复最后提供3-4个具体的选项供用户选择
+
+回复格式示例：
+"我理解您想要开发一个[产品类型]来[核心目标]。为了确保功能设计准确，我想了解：
+
+[具体问题]
+
+请选择最符合您想法的选项：
+1. [选项1]
+2. [选项2] 
+3. [选项3]"
+
+如果信息已经足够，请说明可以进入需求确认环节。
+
+请用自然语言回复，不要使用JSON格式。`;
 
     const messages = [
       { role: 'system', content: systemPrompt },
@@ -214,7 +235,8 @@ ${conversationHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
 
     return await this.chatCompletionWithRetry(messages, 3, {
       temperature: 0.7,
-      maxTokens: 2000
+      maxTokens: 2000,
+      modelId: MODEL_CONFIG.QUESTIONING
     });
   }
 
@@ -266,7 +288,8 @@ ${JSON.stringify(factsDigest, null, 2)}
       { role: 'user', content: '请基于事实摘要生成PRD文档' }
     ], 3, {
       temperature: 0.5,
-      maxTokens: 6000
+      maxTokens: 6000,
+      modelId: MODEL_CONFIG.PRD_GENERATION
     });
   }
 
@@ -313,7 +336,8 @@ ${prdDocument}
       { role: 'user', content: '请基于PRD生成AI编程实施方案' }
     ], 3, {
       temperature: 0.6,
-      maxTokens: 8000
+      maxTokens: 8000,
+      modelId: MODEL_CONFIG.AI_CODING_SOLUTION
     });
   }
 
@@ -344,10 +368,76 @@ ${prdDocument}
       { role: 'user', content: '请生成高端原型页面' }
     ], 3, {
       temperature: 0.7,
-      maxTokens: 4000
+      maxTokens: 4000,
+      modelId: MODEL_CONFIG.PROTOTYPE_GENERATION
     });
   }
 }
 
 // 全局AI客户端实例
 export const aiClient = new MeituanAIClient();
+
+// 为重构的模块提供兼容接口（保持原有的模型选择逻辑）
+export const claudeAPI = {
+  async chatCompletion(messages: any[], options?: {
+    modelId?: string;
+    temperature?: number;
+    maxTokens?: number;
+  }): Promise<string> {
+    const result = await aiClient.chatCompletion(messages, {
+      modelId: options?.modelId,
+      temperature: options?.temperature,
+      maxTokens: options?.maxTokens
+    });
+    if (result.success) {
+      return typeof result.response === 'string' ? result.response : JSON.stringify(result.response);
+    }
+    throw new Error(result.error || 'AI调用失败');
+  },
+
+  async streamCompletion(messages: any[], onChunk: (chunk: string) => void, options?: {
+    modelId?: string;
+    temperature?: number;
+  }): Promise<void> {
+    try {
+      for await (const chunk of aiClient.streamCompletion(messages, {
+        modelId: options?.modelId,
+        temperature: options?.temperature
+      })) {
+        if (chunk.content && !chunk.finished) {
+          onChunk(chunk.content);
+        }
+        if (chunk.error) {
+          throw new Error(chunk.error);
+        }
+      }
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'AI流式调用失败');
+    }
+  },
+
+  // 直接使用原有的专用方法（保持模型选择）
+  async generateHighQualityPRD(factsDigest: any): Promise<string> {
+    const result = await aiClient.generateHighQualityPRD(factsDigest);
+    if (result.success) {
+      return typeof result.response === 'string' ? result.response : JSON.stringify(result.response);
+    }
+    throw new Error(result.error || 'PRD生成失败');
+  },
+
+  async generateAICodingSolution(prdDocument: string): Promise<string> {
+    const result = await aiClient.generateAICodingSolution(prdDocument);
+    if (result.success) {
+      return typeof result.response === 'string' ? result.response : JSON.stringify(result.response);
+    }
+    throw new Error(result.error || 'AI编程方案生成失败');
+  },
+
+  async generatePrototype(feature: string, productInfo: any): Promise<string> {
+    const result = await aiClient.generatePrototype(feature, productInfo);
+    if (result.success) {
+      return typeof result.response === 'string' ? result.response : JSON.stringify(result.response);
+    }
+    throw new Error(result.error || '原型图生成失败');
+  }
+};

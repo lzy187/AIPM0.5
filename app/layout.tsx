@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+// 使用系统字体替代Google Fonts，避免网络依赖
+const fontClass = 'font-sans'
 
 export const metadata: Metadata = {
   title: 'AI产品经理 - 从想法到实现的完整解决方案',
@@ -28,7 +28,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" type="image/x-icon" href="/favicon.ico" />
       </head>
-      <body className={inter.className}>
+      <body className={fontClass}>
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
           {/* 背景装饰 */}
           <div className="fixed inset-0 overflow-hidden pointer-events-none">
