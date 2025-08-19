@@ -259,22 +259,145 @@ export default function FullScreenQuestioningModule({ userInput, onComplete }: P
         return;
       }
 
-      // 生成下一个问题
-      const nextQuestion: BubbleQuestion = {
-        id: generateId(),
-        question: '很好！请告诉我更多关于使用场景的详细信息：',
-        options: [
-          { id: '1', text: '用于日常个人使用' },
-          { id: '2', text: '小团队协作使用' },
-          { id: '3', text: '大规模团队使用' },
-          { id: '4', text: '信息已经足够了' }
-        ],
-        position: generateRandomPosition(),
-        isVisible: true,
-        isAnswered: false
+      // 🎯 调用后端API生成下一个智能问题
+      const generateNextQuestion = async () => {
+        try {
+          const conversationHistory = [
+            { role: 'user', content: userInput.originalInput.text },
+            ...questionHistory.map((q, index) => ({ role: 'assistant', content: `问题${index + 1}的回答: ${q}` }))
+          ];
+
+          const response = await fetch('/api/questioning', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              message: `基于用户回答"${answer}"，请生成下一个问题`,
+              conversationHistory,
+              stream: false
+            })
+          });
+
+          const result = await response.json();
+
+        if (result.success && result.data.questions && result.data.questions.length > 0) {
+          const nextQuestion: BubbleQuestion = {
+            id: generateId(),
+            question: result.data.response || '请选择最符合您需求的选项：',
+            options: result.data.questions,
+            position: generateRandomPosition(),
+            isVisible: true,
+            isAnswered: false
+          };
+
+          setActiveBubbles([nextQuestion]);
+        } else {
+          // 降级：如果API失败，生成不同的问题
+          const alternativeQuestions = [
+            {
+              question: '您希望这个工具重点解决哪个方面的问题？',
+              options: [
+                { id: '1', text: '提高任务透明度和可视化' },
+                { id: '2', text: '简化任务分配和协作流程' },
+                { id: '3', text: '加强截止日期管理和提醒' },
+                { id: '4', text: '信息已经足够了' }
+              ]
+            },
+            {
+              question: '您最希望改进现有工具的哪个方面？',
+              options: [
+                { id: '1', text: '界面太复杂，需要更简洁的设计' },
+                { id: '2', text: '功能太多，需要专注核心需求' },
+                { id: '3', text: '操作流程繁琐，需要更高效的交互' },
+                { id: '4', text: '信息已经足够了' }
+              ]
+            },
+            {
+              question: '除了基本的任务管理，您还需要什么功能？',
+              options: [
+                { id: '1', text: '团队成员工作量统计' },
+                { id: '2', text: '项目进度报告生成' },
+                { id: '3', text: '任务优先级智能排序' },
+                { id: '4', text: '基本功能就足够了' }
+              ]
+            }
+          ];
+
+          const questionIndex = Math.min(questionHistory.length - 1, alternativeQuestions.length - 1);
+          const selectedQuestion = alternativeQuestions[questionIndex];
+
+          const nextQuestion: BubbleQuestion = {
+            id: generateId(),
+            question: selectedQuestion.question,
+            options: selectedQuestion.options,
+            position: generateRandomPosition(),
+            isVisible: true,
+            isAnswered: false
+          };
+
+          setActiveBubbles([nextQuestion]);
+        }
+      } catch (error) {
+        console.error('❌ 生成下一个问题失败:', error);
+        
+        // 最终降级：简单的完成逻辑
+        console.log('✅ 由于问题生成失败，直接完成智能问答');
+        setIsComplete(true);
+        
+        const questioningResult: SmartQuestioningResult = {
+          extractedInfo: {
+            productType: userInput.preanalysis?.analysis.productType.content || '任务管理工具',
+            coreGoal: userInput.preanalysis?.analysis.coreGoal.content || '简化团队任务管理',
+            targetUsers: answer,
+            userScope: 'small_team' as const,
+            coreFeatures: questionHistory,
+            useScenario: '团队任务管理和协作',
+            userJourney: '用户流程：' + questionHistory.join(' → '),
+            inputOutput: '任务输入 → 进度跟踪 → 提醒通知',
+            painPoint: '现有工具过于复杂',
+            currentSolution: '当前使用复杂的任务管理工具',
+            technicalHints: [],
+            integrationNeeds: [],
+            performanceRequirements: '快速响应，简洁易用'
+          },
+          questioningSession: {
+            questions: activeBubbles.map(b => ({ 
+              id: b.id, 
+              question: b.question, 
+              type: 'single_choice' as const, 
+              options: b.options,
+              priority: 1
+            })),
+            answers: questionHistory.map((answer, index) => ({
+              questionId: `q_${index}`,
+              value: answer,
+              timestamp: new Date()
+            })),
+            totalRounds: questionHistory.length,
+            duration: Date.now() - new Date().getTime(),
+            completionReason: '问题生成失败，提前完成'
+          },
+          completeness: {
+            critical: completeness.key,
+            important: completeness.important,
+            optional: 0.8,
+            overall: completeness.overall
+          },
+          userInputResult: userInput,
+          validation: {
+            extractionConfidence: 0.85,
+            questioningQuality: 0.7,
+            readyForConfirmation: true
+          }
+        };
+        
+        setTimeout(() => {
+          onComplete(questioningResult);
+        }, 1000);
+        }
       };
 
-      setActiveBubbles([nextQuestion]);
+      // 调用异步函数生成下一个问题
+      generateNextQuestion();
     }, 1200);
   };
 
