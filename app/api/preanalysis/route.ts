@@ -27,56 +27,52 @@ export async function POST(request: NextRequest) {
 ## 🎯 任务
 分析用户输入的产品需求，识别缺失或模糊的关键维度。
 
-## 📋 需要分析的维度
-1. **产品类型** - 工具类型（效率工具、团队协作、数据处理、自动化等）
-2. **核心目标** - 要解决的主要问题或痛点
-3. **主要功能** - 具体的功能需求和特性
-4. **目标用户** - 使用者群体和使用场景
-5. **技术细节** - 技术实现方面的要求和约束
+## 📋 PRD导向的4个核心维度分析
+分析用户输入在AI-Coding-Ready PRD生成所需的关键信息完整度：
+
+1. **问题定义** - 痛点识别、现状分析、期望解决方案
+2. **功能逻辑** - 核心功能、业务流程、用户操作步骤
+3. **数据模型** - 数据实体、关系结构、存储操作需求
+4. **用户界面** - 页面设计、交互逻辑、视觉要求
 
 ## 🚨 严格输出格式
 必须返回JSON格式：
 
 {
   "analysis": {
-    "productType": {
+    "problemDefinition": {
       "identified": true/false,
-      "content": "已识别的产品类型或空字符串",
-      "confidence": 0.0-1.0
+      "content": "已识别的问题定义信息",
+      "confidence": 0.0-1.0,
+      "gaps": ["缺失的具体痛点", "缺失的现状描述"]
     },
-    "coreGoal": {
-      "identified": true/false, 
-      "content": "已识别的核心目标或空字符串",
-      "confidence": 0.0-1.0
-    },
-    "mainFeatures": {
+    "functionalLogic": {
       "identified": true/false,
-      "content": "已识别的主要功能或空字符串", 
-      "confidence": 0.0-1.0
+      "content": "已识别的功能逻辑信息",
+      "confidence": 0.0-1.0,
+      "gaps": ["缺失的核心功能", "缺失的业务流程"]
     },
-    "targetUsers": {
+    "dataModel": {
       "identified": true/false,
-      "content": "已识别的目标用户或空字符串",
-      "confidence": 0.0-1.0
+      "content": "已识别的数据模型信息",
+      "confidence": 0.0-1.0,
+      "gaps": ["缺失的数据实体", "缺失的存储需求"]
     },
-    "technicalDetails": {
+    "userInterface": {
       "identified": true/false,
-      "content": "已识别的技术细节或空字符串",
-      "confidence": 0.0-1.0
+      "content": "已识别的界面设计信息",
+      "confidence": 0.0-1.0,
+      "gaps": ["缺失的页面设计", "缺失的交互逻辑"]
     }
   },
-  "missingDimensions": ["产品类型", "核心目标"],
-  "completeness": 0.0-1.0,
-  "nextQuestion": {
-    "dimension": "最需要明确的维度",
-    "question": "针对性问题",
-    "options": [
-      {"id": "1", "text": "选项1"},
-      {"id": "2", "text": "选项2"},
-      {"id": "3", "text": "选项3"},
-      {"id": "4", "text": "选项4"}
-    ]
-  }
+  "completeness": {
+    "problemDefinition": 0.0-1.0,
+    "functionalLogic": 0.0-1.0,
+    "dataModel": 0.0-1.0,
+    "userInterface": 0.0-1.0,
+    "overall": 0.0-1.0
+  },
+  "missingDimensions": ["问题定义", "功能逻辑"]
 }
 
 ⚠️ 只输出JSON，不要其他文本！`
@@ -111,27 +107,42 @@ ${userInput}`
     } catch (error) {
       console.error('❌ 预分析JSON解析失败:', aiResponse);
       
-      // 降级处理
+      // 🔄 PRD导向的降级处理
       analysisResult = {
         analysis: {
-          productType: { identified: false, content: "", confidence: 0.0 },
-          coreGoal: { identified: false, content: "", confidence: 0.0 },
-          mainFeatures: { identified: false, content: "", confidence: 0.0 },
-          targetUsers: { identified: false, content: "", confidence: 0.0 },
-          technicalDetails: { identified: false, content: "", confidence: 0.0 }
+          problemDefinition: { 
+            identified: false, 
+            content: "", 
+            confidence: 0.0,
+            gaps: ["具体痛点", "现状分析", "期望解决方案"]
+          },
+          functionalLogic: { 
+            identified: false, 
+            content: "", 
+            confidence: 0.0,
+            gaps: ["核心功能", "业务流程", "用户操作步骤"]
+          },
+          dataModel: { 
+            identified: false, 
+            content: "", 
+            confidence: 0.0,
+            gaps: ["数据实体", "关系结构", "存储需求"]
+          },
+          userInterface: { 
+            identified: false, 
+            content: "", 
+            confidence: 0.0,
+            gaps: ["页面设计", "交互逻辑", "视觉要求"]
+          }
         },
-        missingDimensions: ["产品类型", "核心目标", "主要功能"],
-        completeness: 0.2,
-        nextQuestion: {
-          dimension: "产品类型",
-          question: "您希望开发什么类型的工具？",
-          options: [
-            {"id": "1", "text": "个人效率工具"},
-            {"id": "2", "text": "团队协作工具"}, 
-            {"id": "3", "text": "数据处理工具"},
-            {"id": "4", "text": "自动化工具"}
-          ]
-        }
+        completeness: {
+          problemDefinition: 0.1,
+          functionalLogic: 0.1,
+          dataModel: 0.1,
+          userInterface: 0.1,
+          overall: 0.1
+        },
+        missingDimensions: ["问题定义", "功能逻辑", "数据模型", "用户界面"]
       };
     }
 

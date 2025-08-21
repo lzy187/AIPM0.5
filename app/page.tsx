@@ -9,19 +9,29 @@ import {
   FileText, 
   Code2,
   ArrowRight,
-  Sparkles,
-  Image as ImageIcon
+  Sparkles
 } from 'lucide-react';
 
-// 组件导入（稍后创建）
+// 组件导入
 import { UserInputModule } from '@/components/UserInputModule';
 import FullScreenQuestioningModule from '@/components/FullScreenQuestioningModule';
-import { RequirementConfirmationModule } from '@/components/RequirementConfirmationModule';
+import { AICodeReadyConfirmationModule } from '@/components/AICodeReadyConfirmationModule';
 import { UnifiedPRDModule } from '@/components/UnifiedPRDModule';
 import { AICodingModule } from '@/components/AICodingModule';
-// import { ProgressIndicator } from '@/components/ProgressIndicator'; // 已移除进度条
 
-import type { ModuleStep, AppState } from '@/types';
+import type { UserInputResult } from '@/types';
+import type { AICodeReadyQuestioningResult, AICodeReadyConfirmationResult } from '@/types/ai-coding-ready';
+
+// 应用状态类型
+type Module = 'input' | 'questioning' | 'confirmation' | 'prd' | 'coding';
+
+interface AppState {
+  currentModule: Module;
+  userInput?: UserInputResult;
+  questioningResult?: AICodeReadyQuestioningResult;
+  confirmationResult?: AICodeReadyConfirmationResult;
+  sessionId: string;
+}
 
 export default function AIProductManager() {
   const [appState, setAppState] = useState<AppState>({
@@ -32,7 +42,7 @@ export default function AIProductManager() {
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   const modules: Array<{
-    id: ModuleStep;
+    id: Module;
     title: string;
     description: string;
     icon: React.ComponentType<{ className?: string }>;
@@ -79,7 +89,7 @@ export default function AIProductManager() {
   const currentModuleInfo = modules[currentModuleIndex];
 
   // 模块切换处理
-  const handleModuleTransition = async (nextModule: ModuleStep, data?: any) => {
+  const handleModuleTransition = async (nextModule: Module, data?: Partial<AppState>) => {
     setIsTransitioning(true);
     
     // 延迟以显示过渡动画
@@ -95,25 +105,27 @@ export default function AIProductManager() {
   };
 
   // 处理用户输入完成
-  const handleUserInputComplete = (userInputResult: any) => {
-    handleModuleTransition('questioning', { userInput: userInputResult });
+  const handleUserInputComplete = (result: UserInputResult) => {
+    console.log('✅ 用户输入完成:', result);
+    handleModuleTransition('questioning', { userInput: result });
   };
 
-  // 处理智能问答完成 - 🎯 修正：应该跳转到需求确认
-  const handleQuestioningComplete = (questioningResult: any) => {
-    console.log('✅ 智能问答完成，传递questioningResult:', questioningResult);
-    handleModuleTransition('confirmation', { questioningResult });
+  // 处理智能问答完成
+  const handleQuestioningComplete = (result: AICodeReadyQuestioningResult) => {
+    console.log('✅ 智能问答完成:', result);
+    handleModuleTransition('confirmation', { questioningResult: result });
   };
 
-  // 处理需求确认完成 - 🎯 传递confirmationResult给PRD模块
-  const handleConfirmationComplete = (confirmationResult: any) => {
-    console.log('✅ 需求确认完成，传递confirmationResult:', confirmationResult);
-    handleModuleTransition('prd', { confirmationResult });
+  // 处理需求确认完成
+  const handleConfirmationComplete = (result: AICodeReadyConfirmationResult) => {
+    console.log('✅ 需求确认完成:', result);
+    handleModuleTransition('prd', { confirmationResult: result });
   };
 
   // 处理PRD生成完成
-  const handlePRDComplete = (prdResult: any) => {
-    handleModuleTransition('coding', { prdResult });
+  const handlePRDComplete = (result: any) => {
+    console.log('✅ PRD生成完成:', result);
+    handleModuleTransition('coding', {});
   };
 
   // 重新开始流程
@@ -143,7 +155,30 @@ export default function AIProductManager() {
         </motion.div>
 
         {/* 进度指示器 */}
-        {/* 已移除进度条组件 - 用户要求删除 */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="mb-8"
+        >
+          <div className="flex justify-center space-x-2 md:space-x-4">
+            {modules.map((module, index) => (
+              <div
+                key={module.id}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-full transition-all ${
+                  index <= currentModuleIndex 
+                    ? `bg-gradient-to-r ${module.color} text-white` 
+                    : 'bg-white/10 text-white/50'
+                }`}
+              >
+                <module.icon className="w-4 h-4" />
+                <span className="text-sm font-medium hidden md:block">{module.title}</span>
+                {index < modules.length - 1 && (
+                  <ArrowRight className="w-4 h-4 ml-2 text-white/30" />
+                )}
+              </div>
+            ))}
+          </div>
+        </motion.div>
 
         {/* 当前模块标题 */}
         <motion.div
@@ -200,9 +235,8 @@ export default function AIProductManager() {
               />
             )}
 
-            {/* ✅ 需求确认模块 */}
-            {appState.currentModule === 'confirmation' && (
-              <RequirementConfirmationModule
+            {appState.currentModule === 'confirmation' && appState.questioningResult && (
+              <AICodeReadyConfirmationModule
                 questioningResult={appState.questioningResult}
                 onConfirm={handleConfirmationComplete}
                 onRestart={handleRestart}
@@ -210,8 +244,7 @@ export default function AIProductManager() {
               />
             )}
 
-            {/* ✅ PRD生成模块 - 整体单页展示 */}
-            {appState.currentModule === 'prd' && (
+            {appState.currentModule === 'prd' && appState.confirmationResult && (
               <UnifiedPRDModule
                 confirmationResult={appState.confirmationResult}
                 onComplete={handlePRDComplete}
@@ -220,12 +253,9 @@ export default function AIProductManager() {
               />
             )}
 
-
-
-            {/* ✅ AI编程解决方案模块 */}
-            {appState.currentModule === 'coding' && (
+            {appState.currentModule === 'coding' && appState.confirmationResult && (
               <AICodingModule
-                prdResult={appState.prdResult}
+                prdResult={appState.confirmationResult}
                 onRestart={handleRestart}
                 sessionId={appState.sessionId}
               />

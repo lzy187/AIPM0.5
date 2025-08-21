@@ -4,10 +4,10 @@
 export const MODEL_CONFIG = {
   // 🔥 高频交互模块 - claude-3.5-sonnet-v2 (300 RPM)
   QUESTIONING: "anthropic.claude-3.5-sonnet-v2", // 智能问答
-  REQUIREMENT_CONFIRMATION: "anthropic.claude-3.5-sonnet-v2", // 需求确认
+  REQUIREMENT_CONFIRMATION: "anthropic.claude-3.5-sonnet-v2", // 需求确认（已废弃）
   
-  // 🚀 复杂生成模块 - claude-opus-4.1 (100 RPM) 
-  PRD_GENERATION: "anthropic.claude-opus-4.1", // PRD文档生成
+  // 🚀 复杂生成模块 - claude-sonnet-4 (测试) 
+  PRD_GENERATION: "anthropic.claude-3.5-sonnet-v2", // PRD文档生成
   PROTOTYPE_GENERATION: "anthropic.claude-opus-4.1", // 原型图生成
   AI_CODING_SOLUTION: "anthropic.claude-opus-4.1", // AI编程方案
   

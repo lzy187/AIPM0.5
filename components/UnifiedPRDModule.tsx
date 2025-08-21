@@ -25,9 +25,11 @@ import type {
   PRDQualityReport,
   ProductType 
 } from '@/types';
+import type { AICodeReadyConfirmationResult } from '@/types/ai-coding-ready';
+import { assessPRDQuality } from '@/lib/prd-quality-assessment';
 
 interface UnifiedPRDModuleProps {
-  confirmationResult?: RequirementConfirmationResult;
+  confirmationResult?: RequirementConfirmationResult | AICodeReadyConfirmationResult;
   onComplete: (result: any) => void;
   onRestart: () => void;
   sessionId: string;
@@ -66,7 +68,7 @@ export function UnifiedPRDModule({
   }, [confirmationResult]);
 
   const generateUnifiedPRD = async () => {
-    if (!confirmationResult?.factsDigest) return;
+    if (!confirmationResult) return;
 
     setIsGenerating(true);
     setStreamingContent('');
@@ -77,53 +79,72 @@ export function UnifiedPRDModule({
 
       setGenerationStep('正在生成完整PRD文档...');
 
+      // 🎯 判断确认结果类型并转换数据
+      let dataToSend: any;
+      
+      if ('finalData' in confirmationResult) {
+        // AI-Coding-Ready 确认结果
+        const aiCodeReadyResult = confirmationResult as AICodeReadyConfirmationResult;
+        console.log('🔍 [数据调试] aiCodeReadyResult.finalData:', aiCodeReadyResult.finalData);
+        dataToSend = {
+          unifiedData: aiCodeReadyResult.finalData,
+          sessionId: sessionId,
+          template: detectProductTypeFromUnified(aiCodeReadyResult.finalData),
+          aiCodingReady: true
+        };
+        console.log('🔍 [数据调试] 构建的dataToSend:', dataToSend);
+      } else {
+        // 传统确认结果
+        const traditionalResult = confirmationResult as RequirementConfirmationResult;
+        if (!traditionalResult.factsDigest) return;
+        
+        dataToSend = {
+          factsDigest: traditionalResult.factsDigest,
+          sessionId: sessionId,
+          template: detectProductType(traditionalResult.factsDigest),
+          unified: true
+        };
+      }
+
       // 调用统一的PRD生成API
       const response = await fetch('/api/unified-prd-generation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          factsDigest: confirmationResult.factsDigest,
-          sessionId: sessionId,
-          template: detectProductType(confirmationResult.factsDigest),
-          unified: true
-        }),
+        body: JSON.stringify(dataToSend),
       });
 
       if (response.ok) {
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
-        let currentContent = '';
-
-        if (reader) {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const chunk = decoder.decode(value);
-            currentContent += chunk;
-            setStreamingContent(currentContent);
-          }
-
-          // 解析完整的PRD
-          const finalResult = JSON.parse(currentContent);
-          setPrd(finalResult.prd);
-          setPrdMarkdown(finalResult.markdown);
-          setQualityReport(finalResult.qualityReport);
+        // 🔧 修复：直接解析JSON响应，不是流式响应
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          console.log('✅ PRD生成成功，返回数据:', result.data);
+          
+          setPrd(result.data.prd || null);
+          setPrdMarkdown(result.data.markdown || '# PRD生成完成\n\n暂无具体内容');
+          setQualityReport(result.data.qualityReport || null);
+          setStreamingContent(result.data.markdown || '');
+        } else {
+          throw new Error(result.error || 'PRD生成失败');
         }
       } else {
         // 降级方案
         const fallbackPRD = await generateFallbackPRD();
-        setPrd(fallbackPRD.prd);
-        setPrdMarkdown(fallbackPRD.markdown);
-        setQualityReport(fallbackPRD.qualityReport);
+        if (fallbackPRD) {
+          setPrd(fallbackPRD.prd);
+          setPrdMarkdown(fallbackPRD.markdown);
+          setQualityReport(fallbackPRD.qualityReport);
+        }
       }
 
     } catch (error) {
       console.error('PRD生成失败:', error);
       const fallbackPRD = await generateFallbackPRD();
-      setPrd(fallbackPRD.prd);
-      setPrdMarkdown(fallbackPRD.markdown);
-      setQualityReport(fallbackPRD.qualityReport);
+      if (fallbackPRD) {
+        setPrd(fallbackPRD.prd);
+        setPrdMarkdown(fallbackPRD.markdown);
+        setQualityReport(fallbackPRD.qualityReport);
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -144,8 +165,36 @@ export function UnifiedPRDModule({
   };
 
   const generateFallbackPRD = async () => {
-    const factsDigest = confirmationResult!.factsDigest;
-    const productType = detectProductType(factsDigest);
+    if (!confirmationResult) return;
+
+    let factsDigest: any;
+    let productType: ProductType;
+
+    if ('finalData' in confirmationResult) {
+      // AI-Coding-Ready 确认结果
+      const aiCodeReadyResult = confirmationResult as AICodeReadyConfirmationResult;
+      // 为向后兼容，创建一个简化的factsDigest
+      factsDigest = {
+        productDefinition: {
+          coreGoal: aiCodeReadyResult.finalData.problemDefinition.expectedSolution,
+          type: aiCodeReadyResult.finalData.metadata.productType,
+          targetUsers: aiCodeReadyResult.finalData.metadata.targetUsers
+        },
+        functionalRequirements: {
+          coreFeatures: aiCodeReadyResult.finalData.functionalLogic.coreFeatures.map(f => f.name),
+          useScenarios: aiCodeReadyResult.finalData.userInterface.pages.map(p => p.purpose)
+        },
+        contextualInfo: {
+          originalUserInput: aiCodeReadyResult.finalData.metadata.originalInput
+        }
+      };
+      productType = detectProductTypeFromUnified(aiCodeReadyResult.finalData);
+    } else {
+      // 传统确认结果
+      const traditionalResult = confirmationResult as RequirementConfirmationResult;
+      factsDigest = traditionalResult.factsDigest;
+      productType = detectProductType(factsDigest);
+    }
 
     const markdown = generateUnifiedPRDMarkdown(factsDigest, productType);
     const prd = createUnifiedPRDObject(factsDigest, markdown);
@@ -453,24 +502,14 @@ ${functionalRequirements.coreFeatures.map((feature: string, index: number) => `
   };
 
   const generateQualityReport = (prd: HighQualityPRD): PRDQualityReport => {
-    return {
-      completeness: 0.95,
-      clarity: 0.92,
-      specificity: 0.88,
-      feasibility: 0.91,
-      visualQuality: 0.89,
-      overallScore: 0.91,
-      recommendations: [
-        '建议增加更详细的用户故事描述',
-        '可以补充更多的技术实现细节',
-        '建议添加更多的验收标准'
-      ],
-      strengths: [
-        '产品定位清晰明确',
-        '功能需求完整全面',
-        '技术方案合理可行'
-      ]
-    };
+    // 🎯 获取统一数据结构用于更准确的评估
+    let unifiedData = undefined;
+    if (confirmationResult && 'finalData' in confirmationResult) {
+      unifiedData = (confirmationResult as AICodeReadyConfirmationResult).finalData;
+    }
+    
+    // 🎯 使用智能质量评估，而非固定分数
+    return assessPRDQuality(prd, unifiedData);
   };
 
   const downloadPRD = () => {
@@ -738,7 +777,7 @@ ${functionalRequirements.coreFeatures.map((feature: string, index: number) => `
               <div 
                 className="prose prose-invert prose-lg max-w-none"
                 dangerouslySetInnerHTML={{ 
-                  __html: marked(prdMarkdown) 
+                  __html: marked(prdMarkdown || '# 正在生成PRD...\n\n请稍候...') 
                 }}
               />
             </div>
@@ -908,4 +947,52 @@ ${functionalRequirements.coreFeatures.map((feature: string, index: number) => `
       </div>
     </div>
   );
+}
+
+// 🎯 从AI-Coding-Ready数据结构中检测产品类型
+function detectProductTypeFromUnified(unifiedData: any): ProductType {
+  const productTypeMapping: Record<string, ProductType> = {
+    '网站应用': 'web_app',
+    '移动应用': 'mobile_app', 
+    '桌面软件': 'desktop_app',
+    '浏览器插件': 'browser_extension',
+    '效率工具': 'utility_tool',
+    '团队协作': 'management_tool',
+    '内容管理': 'content_platform',
+    '电商平台': 'e_commerce',
+    '社交平台': 'saas_platform',
+    '实用工具': 'utility_tool'
+  };
+
+  // 从元数据中获取产品类型
+  const metadataType = unifiedData.metadata?.productType || '';
+  
+  // 尝试从产品类型字符串中匹配
+  for (const [keyword, type] of Object.entries(productTypeMapping)) {
+    if (metadataType.includes(keyword)) {
+      return type;
+    }
+  }
+
+  // 从问题定义中推断
+  const painPoint = unifiedData.problemDefinition?.painPoint || '';
+  const expectedSolution = unifiedData.problemDefinition?.expectedSolution || '';
+  const combinedText = `${painPoint} ${expectedSolution}`.toLowerCase();
+
+  if (combinedText.includes('网站') || combinedText.includes('web')) {
+    return 'web_app';
+  } else if (combinedText.includes('手机') || combinedText.includes('移动') || combinedText.includes('app')) {
+    return 'mobile_app';
+  } else if (combinedText.includes('浏览器') || combinedText.includes('插件') || combinedText.includes('扩展')) {
+    return 'browser_extension';
+  } else if (combinedText.includes('团队') || combinedText.includes('协作') || combinedText.includes('合作')) {
+    return 'management_tool';
+  } else if (combinedText.includes('内容') || combinedText.includes('平台')) {
+    return 'content_platform';
+  } else if (combinedText.includes('电商') || combinedText.includes('购物')) {
+    return 'e_commerce';
+  }
+
+  // 默认返回工具类型
+  return 'utility_tool';
 }

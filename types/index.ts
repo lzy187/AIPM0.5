@@ -24,35 +24,40 @@ export interface UserInputResult {
   // ✨ 添加预分析结果
   preanalysis?: {
     analysis: {
-      productType: {
+      problemDefinition: {
         identified: boolean;
         content: string;
         confidence: number;
+        gaps: string[];
       };
-      coreGoal: {
+      functionalLogic: {
         identified: boolean;
         content: string;
         confidence: number;
+        gaps: string[];
       };
-      mainFeatures: {
+      dataModel: {
         identified: boolean;
         content: string;
         confidence: number;
+        gaps: string[];
       };
-      targetUsers: {
+      userInterface: {
         identified: boolean;
         content: string;
         confidence: number;
-      };
-      technicalDetails: {
-        identified: boolean;
-        content: string;
-        confidence: number;
+        gaps: string[];
       };
     };
+    completeness: {
+      problemDefinition: number;
+      functionalLogic: number;
+      dataModel: number;
+      userInterface: number;
+      overall: number;
+    };
     missingDimensions: string[];
-    completeness: number;
-    nextQuestion: {
+    nextQuestion?: {  // 🔄 标记为可选，预分析不再生成问题
       dimension: string;
       question: string;
       options: Array<{
@@ -191,6 +196,7 @@ export interface FactsDigest {
     performanceRequirements?: string;
     dataHandling?: string;
     securityConsiderations?: string[];
+    originalUserInput?: string; // 🎯 添加原始用户输入字段
   };
 }
 
@@ -300,6 +306,7 @@ export interface PRDQualityReport {
   specificity: number;
   feasibility: number;
   visualQuality?: number;
+  aiCodingReadiness?: number; // 🎯 新增AI编程就绪度评分
   overallScore: number;
   passedQualityGate?: boolean;
   checks?: Array<{

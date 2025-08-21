@@ -765,43 +765,47 @@ async function createPRDObject(factsDigest: any, content: string): Promise<HighQ
 }
 
 async function generateQualityReport(prd: HighQualityPRD): Promise<PRDQualityReport> {
+  // 🎯 使用智能质量评估系统
+  const { assessPRDQuality } = await import('@/lib/prd-quality-assessment');
+  const report = assessPRDQuality(prd);
+  
+  // 🎯 转换为兼容的格式
   return {
-    completeness: 0.95,
-    clarity: 0.90,
-    specificity: 0.88,
-    feasibility: 0.92,
-    overallScore: 0.91,
-    passedQualityGate: true,
-    strengths: [
-      '需求分析完整',
-      '功能模块清晰',
-      '技术方案可行'
-    ],
+    completeness: report.completeness,
+    clarity: report.clarity,
+    specificity: report.specificity,
+    feasibility: report.feasibility,
+    overallScore: report.overallScore,
+    passedQualityGate: report.overallScore >= 0.7,
+    strengths: report.strengths,
     checks: [
       {
         name: 'Completeness',
-        score: 0.95,
-        passed: true,
-        issues: []
+        score: report.completeness,
+        passed: report.completeness >= 0.7,
+        issues: report.completeness < 0.7 ? ['信息完整度需要提升'] : []
       },
       {
         name: 'Clarity',
-        score: 0.90,
-        passed: true,
-        issues: []
+        score: report.clarity,
+        passed: report.clarity >= 0.7,
+        issues: report.clarity < 0.7 ? ['需求描述清晰度需要改进'] : []
+      },
+      {
+        name: 'AI-Coding Readiness',
+        score: report.aiCodingReadiness || 0.8,
+        passed: (report.aiCodingReadiness || 0.8) >= 0.7,
+        issues: (report.aiCodingReadiness || 0.8) < 0.7 ? ['AI编程就绪度需要提升'] : []
       },
       {
         name: 'Feasibility',
-        score: 0.88,
-        passed: true,
-        issues: []
+        score: report.feasibility,
+        passed: report.feasibility >= 0.7,
+        issues: report.feasibility < 0.7 ? ['技术可行性需要评估'] : []
       }
     ],
-    issues: [],
-    recommendations: [
-      '建议添加更详细的用户故事',
-      '可以补充性能指标要求'
-    ]
+    issues: report.overallScore < 0.7 ? ['整体质量有待提升'] : [],
+    recommendations: report.recommendations
   };
 }
 
