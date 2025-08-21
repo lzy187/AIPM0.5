@@ -18,6 +18,9 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    console.log(`🧠 [预分析] 开始处理用户输入: ${userInput.slice(0, 100)}...`);
+    console.log(`🔧 [预分析] 使用模型: ${MODEL_CONFIG.QUESTIONING}`);
+    
     // 🎯 AI预分析用户需求，识别缺失维度
     const result = await aiClient.chatCompletionWithRetry([
       {
@@ -90,11 +93,60 @@ ${userInput}`
     });
 
     if (!result.success) {
+      console.error(`❌ [预分析] AI调用失败:`, result.error);
+      console.error(`🔍 [预分析] TraceId: ${result.traceId}`);
+      
+      // 🔄 降级处理：直接返回基础分析结果
+      const fallbackAnalysis = {
+        analysis: {
+          problemDefinition: { 
+            identified: true, 
+            content: `用户需求：${userInput}`, 
+            confidence: 0.5,
+            gaps: ["需要更详细的痛点描述"]
+          },
+          functionalLogic: { 
+            identified: false, 
+            content: "", 
+            confidence: 0.2,
+            gaps: ["核心功能需求", "业务流程"]
+          },
+          dataModel: { 
+            identified: false, 
+            content: "", 
+            confidence: 0.1,
+            gaps: ["数据实体", "存储需求"]
+          },
+          userInterface: { 
+            identified: false, 
+            content: "", 
+            confidence: 0.1,
+            gaps: ["界面设计", "用户体验"]
+          }
+        },
+        completeness: {
+          problemDefinition: 0.5,
+          functionalLogic: 0.2,
+          dataModel: 0.1,
+          userInterface: 0.1,
+          overall: 0.2
+        },
+        missingDimensions: ["功能逻辑", "数据模型", "用户界面"]
+      };
+
+      console.log(`🔄 [预分析] 使用降级分析结果`);
+      
       return NextResponse.json({
-        success: false,
-        error: 'AI预分析失败',
+        success: true,
+        data: {
+          preanalysis: fallbackAnalysis,
+          sessionId,
+          timestamp: new Date().toISOString(),
+          fallback: true,
+          note: "AI分析暂时不可用，使用基础分析"
+        },
         traceId: result.traceId
-      }, { status: 500 });
+      });
     }
 
     const aiResponse = result.response.choices[0].message.content;
@@ -156,11 +208,61 @@ ${userInput}`
       traceId: result.traceId
     });
 
-  } catch (error) {
-    console.error('预分析API错误:', error);
+  } catch (error: any) {
+    console.error('💥 [预分析] API异常错误:', error);
+    console.error('💥 [预分析] 错误类型:', error.constructor.name);
+    console.error('💥 [预分析] 错误消息:', error.message);
+    console.error('💥 [预分析] 错误堆栈:', error.stack);
+    
+    // 🔄 最终降级处理
+    const emergencyFallback = {
+      analysis: {
+        problemDefinition: { 
+          identified: true, 
+          content: `用户需求：${userInput || '未知需求'}`, 
+          confidence: 0.3,
+          gaps: ["需要AI分析支持"]
+        },
+        functionalLogic: { 
+          identified: false, 
+          content: "", 
+          confidence: 0.1,
+          gaps: ["等待系统恢复"]
+        },
+        dataModel: { 
+          identified: false, 
+          content: "", 
+          confidence: 0.1,
+          gaps: ["等待系统恢复"]
+        },
+        userInterface: { 
+          identified: false, 
+          content: "", 
+          confidence: 0.1,
+          gaps: ["等待系统恢复"]
+        }
+      },
+      completeness: {
+        problemDefinition: 0.3,
+        functionalLogic: 0.1,
+        dataModel: 0.1,
+        userInterface: 0.1,
+        overall: 0.15
+      },
+      missingDimensions: ["功能逻辑", "数据模型", "用户界面"]
+    };
+
     return NextResponse.json({
-      success: false,
-      error: '服务器内部错误'
-    }, { status: 500 });
+      success: true,
+      data: {
+        preanalysis: emergencyFallback,
+        sessionId: sessionId || `emergency-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        fallback: true,
+        emergency: true,
+        note: "系统临时异常，使用应急分析结果，功能可能受限"
+      },
+      error: `API异常: ${error.message}`
+    });
   }
 }
