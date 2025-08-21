@@ -30,14 +30,6 @@ export class MeituanAIClient {
     this.traceIdGenerator = () => `ai-pm-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  // 🎯 检查是否为构建环境
-  private isBuildTime(): boolean {
-    return process.env.NODE_ENV !== 'production' && 
-           (process.env.NEXT_PHASE === 'phase-production-build' || 
-            process.env.CI === 'true' ||
-            typeof window === 'undefined' && process.argv.includes('build'));
-  }
-
   // 🎯 智能问答调用（普通对话）
   async chatCompletion(messages: any[], options?: {
     stream?: boolean;
@@ -46,17 +38,6 @@ export class MeituanAIClient {
     modelId?: string;
   }): Promise<AICallResult> {
     const traceId = this.traceIdGenerator();
-
-    // 构建时跳过网络请求
-    if (this.isBuildTime()) {
-      console.log('构建时跳过AI网络请求');
-      return {
-        response: null,
-        traceId,
-        success: false,
-        error: 'Build time - skipping network request'
-      };
-    }
 
     try {
       const requestParams: any = {
@@ -100,18 +81,6 @@ export class MeituanAIClient {
     modelId?: string;
   }) {
     const traceId = this.traceIdGenerator();
-
-    // 构建时跳过网络请求
-    if (this.isBuildTime()) {
-      console.log('构建时跳过AI流式网络请求');
-      yield {
-        content: '',
-        traceId,
-        finished: true,
-        error: 'Build time - skipping network request'
-      };
-      return;
-    }
 
     try {
       const stream = await this.client.chat.completions.create({
@@ -159,17 +128,6 @@ export class MeituanAIClient {
     maxTokens?: number;
     modelId?: string;
   }): Promise<AICallResult> {
-    // 构建时跳过网络请求
-    if (this.isBuildTime()) {
-      console.log('构建时跳过AI网络请求(重试版本)');
-      return {
-        response: null,
-        traceId: this.traceIdGenerator(),
-        success: false,
-        error: 'Build time - skipping network request'
-      };
-    }
-
     let lastError;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
