@@ -75,11 +75,55 @@ export async function POST(request: NextRequest) {
     });
 
     if (!result.success) {
+      console.log('AI调用失败，使用简单分析逻辑');
+      
+      // 简单分析用户输入
+      const simpleAnalysis = {
+        analysis: {
+          problemDefinition: { 
+            identified: true, 
+            content: `用户描述：${userInput}`, 
+            confidence: 0.7,
+            gaps: []
+          },
+          functionalLogic: { 
+            identified: false, 
+            content: "", 
+            confidence: 0.2,
+            gaps: ["需要明确核心功能"]
+          },
+          dataModel: { 
+            identified: false, 
+            content: "", 
+            confidence: 0.1,
+            gaps: ["需要明确数据结构"]
+          },
+          userInterface: { 
+            identified: false, 
+            content: "", 
+            confidence: 0.1,
+            gaps: ["需要明确界面需求"]
+          }
+        },
+        completeness: {
+          problemDefinition: 0.7,
+          functionalLogic: 0.2,
+          dataModel: 0.1,
+          userInterface: 0.1,
+          overall: 0.3
+        },
+        missingDimensions: ["功能逻辑", "数据模型", "用户界面"]
+      };
+
       return NextResponse.json({
-        success: false,
-        error: 'AI预分析失败',
-        traceId: result.traceId
-      }, { status: 500 });
+        success: true,
+        data: {
+          preanalysis: simpleAnalysis,
+          sessionId,
+          timestamp: new Date().toISOString(),
+          note: "使用基础分析（AI暂不可用）"
+        }
+      });
     }
 
     const aiResponse = result.response.choices[0].message.content;
