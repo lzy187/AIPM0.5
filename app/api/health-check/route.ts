@@ -1,10 +1,26 @@
 // 健康检查和环境变量诊断API
 import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = 'edge';
+// 使用 Node.js runtime 避免构建时问题
+// export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
   try {
+    // 构建时返回基本信息
+    const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || 
+                       process.env.CI === 'true';
+    
+    if (isBuildTime) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          timestamp: new Date().toISOString(),
+          environment: 'build',
+          note: 'Build time - limited diagnostics',
+          status: 'ok'
+        }
+      });
+    }
     // 检查必需的环境变量
     const diagnostics = {
       timestamp: new Date().toISOString(),
